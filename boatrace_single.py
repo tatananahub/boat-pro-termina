@@ -3217,6 +3217,36 @@ with col_right:
     # --- フォーメーションタブ ---
     with tabs[1]:
         st.markdown('<div class="panel-box">', unsafe_allow_html=True)
+
+        # ============================================================
+        # 6艇ランキング表（軸艇選びの判断材料・「1号艇が必ず本命ではない」問題への対応）
+        # ============================================================
+        _rank_sorted = sorted(results, key=lambda r: -r["prob_1st"])
+        _rank_ev_map = {t["boat"]: t["ev"] for t in trade_list}
+        _rank_rows_html = "".join([
+            f'<div style="display:flex;align-items:center;gap:8px;padding:4px 6px;'
+            f'{"background:rgba(22,224,160,0.08);border-radius:4px;" if i==0 else ""}">'
+            f'<span style="font-size:11px;color:var(--text-dim2);width:18px;">{i+1}位</span>'
+            f'<span style="font-size:13px;font-weight:900;color:{"#16e0a0" if i==0 else "var(--text-light)"};width:50px;">{r["boat"]}号艇</span>'
+            f'<span style="font-size:11px;color:var(--text-dim2);width:90px;">AI予測 {r["prob_1st"]*100:.1f}%</span>'
+            f'<span style="font-size:11px;color:{"#16e0a0" if _rank_ev_map.get(r["boat"],-1)>=0 else "#ff5c72"};">EV {_rank_ev_map.get(r["boat"],0)*100:+.1f}%</span>'
+            f'</div>'
+            for i, r in enumerate(_rank_sorted)
+        ])
+        st.markdown(
+            f'<div style="background:#080d1a;border:1px solid var(--border-dark);border-radius:6px;padding:8px 12px;margin-bottom:10px;">'
+            f'<div style="font-size:10px;color:var(--text-dim2);margin-bottom:4px;">🎯 1着になりやすい順（軸艇選びの参考に）'
+            f'<details class="gloss-term" style="display:inline;margin-left:6px;"><summary style="display:inline;">❓</summary>'
+            f'<span class="gloss-body">「1号艇はイン（内側）から発艇できるので統計的に有利」というのは一般論に過ぎず、'
+            f'このレース個別では選手の実力・モーターの調子・展示タイムによって、他の艇の方が1着になりやすいことは普通にあります。'
+            f'この表は「AI予測」欄（＝実力ベースの1着確率）でレース内の全艇を順位づけしたものなので、'
+            f'まずはこの1位の艇を軸艇の第一候補として考えてください。'
+            f'<br><br>「EV」欄はオッズも加味した期待値で、こちらは軸艇選びではなく『どの買い目が金額的にお得か』を見るためのものです。'
+            f'軸艇（＝1着になってほしい艇）を選ぶときはAI予測（実力）を優先し、EVは相手艇や買い目を絞り込むときの参考にしてください。</span></details>'
+            f'</div>{_rank_rows_html}</div>',
+            unsafe_allow_html=True,
+        )
+
         fcol1, fcol2 = st.columns(2)
         with fcol1:
             st.markdown(gloss("舟券種別"), unsafe_allow_html=True)
@@ -3228,7 +3258,10 @@ with col_right:
         fcol3, fcol4 = st.columns(2)
         with fcol3:
             st.markdown(gloss("軸艇", "軸艇(カンマ区切り)"), unsafe_allow_html=True)
-            axis_str = st.text_input("軸艇(カンマ区切り)", value="1", label_visibility="collapsed")
+            # 【改善】固定で"1"にせず、AIが計算した現在のレースの1着有力艇を自動で初期値にする
+            _auto_axis = str(_rank_sorted[0]["boat"]) if _rank_sorted else "1"
+            axis_str = st.text_input("軸艇(カンマ区切り)", value=_auto_axis, label_visibility="collapsed",
+                help=f"最初は上のランキング表で1位（AI予測が最も高い艇＝{_auto_axis}号艇）が自動で入っています。必要に応じて数字を書き換えてください。")
         with fcol4:
             st.markdown(gloss("相手艇", "相手艇(カンマ区切り)"), unsafe_allow_html=True)
             partner_str = st.text_input("相手艇(カンマ区切り)", value="1,2,3,4,5,6", label_visibility="collapsed")
